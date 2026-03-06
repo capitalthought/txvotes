@@ -67,6 +67,9 @@ export function getElectionPhase(stateCode, options = {}) {
 // Valid state codes
 export const VALID_STATES = Object.keys(STATE_CONFIG);
 
+// Dynamic regex pattern built from STATE_CONFIG keys (e.g. "tx|dc|ca")
+const STATE_PATTERN = VALID_STATES.join('|');
+
 // Default state (for backward compat redirects)
 export const DEFAULT_STATE = 'tx';
 
@@ -76,7 +79,7 @@ export const DEFAULT_STATE = 'tx';
  * Returns null if no state prefix found.
  */
 export function parseStateFromPath(pathname) {
-  const match = pathname.match(/^\/(tx|dc)\/app(\/|$|\?|#)/);
+  const match = pathname.match(new RegExp('^/(' + STATE_PATTERN + ')/app(/|$|\\?|#)'));
   return match ? match[1] : null;
 }
 
@@ -85,5 +88,5 @@ export function parseStateFromPath(pathname) {
  * e.g., /tx/app/api/guide -> /app/api/guide
  */
 export function stripStatePrefix(pathname) {
-  return pathname.replace(/^\/(tx|dc)\/app/, '/app');
+  return pathname.replace(new RegExp('^/(' + STATE_PATTERN + ')/app'), '/app');
 }
