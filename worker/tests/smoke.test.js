@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -402,6 +402,16 @@ describe("Smoke tests: POST /api/admin/cleanup", () => {
 // Admin cleanup with rich mock data (old logs, county data, etc.)
 // ---------------------------------------------------------------------------
 describe("Admin cleanup: stale dated-key detection", () => {
+  // Freeze the clock to late February 2026 so the 14-day staleness window is
+  // computed relative to campaign season: the fixture's late-Feb dated keys are
+  // "recent" and the Dec/Jan keys are stale, as the assertions expect.
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date("2026-02-26T12:00:00Z"), toFake: ["Date"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   const richKvStore = {
     "ballot:statewide:democrat_primary_2026": "{}",
     "ballot:statewide:republican_primary_2026": "{}",

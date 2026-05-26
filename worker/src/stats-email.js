@@ -1,9 +1,10 @@
-// Stats email — sends daily/hourly stats summary emails via Resend.
+// Stats email — sends daily/hourly stats summary emails via Postmark.
 //
 // Daily at 7am CT (13:00 UTC) — summary of previous 24h metrics.
 // During the last 48 hours before election (March 1-3, 2026), switches to hourly.
 //
-// Uses Resend API (free tier: 100 emails/day). Requires RESEND_API_KEY secret.
+// Uses the Postmark REST API (https://api.postmarkapp.com/email). Requires the
+// POSTMARK_SERVER_TOKEN secret and a verified sender signature/domain for FROM_EMAIL.
 // Reads from Analytics Engine and KV to collect metrics.
 
 import { getUsageLog, estimateCost } from "./usage-logger.js";
@@ -372,13 +373,14 @@ function escapeHtmlEmail(str) {
 }
 
 /**
- * Send stats email via MailChannels API.
- * MailChannels is free for Cloudflare Workers when proper SPF DNS record is set.
+ * Send stats email via the Postmark REST API.
+ * Requires a POSTMARK_SERVER_TOKEN and a verified sender signature/domain.
  *
  * @param {object} stats - Stats data from collectEmailStats()
  * @param {object} [options] - Options
  * @param {string} [options.toEmail] - Override recipient
  * @param {string} [options.fromEmail] - Override sender
+ * @param {string} [options.apiKey] - Postmark server token
  * @returns {object} { success: boolean, status?: number, error?: string }
  */
 export async function sendStatsEmail(stats, options = {}) {
@@ -392,33 +394,40 @@ export async function sendStatsEmail(stats, options = {}) {
   const html = formatStatsEmail(stats);
 
   if (!apiKey) {
-    return { success: false, error: "RESEND_API_KEY not configured" };
+    return { success: false, error: "POSTMARK_SERVER_TOKEN not configured" };
   }
 
   const payload = {
-    from: `${FROM_NAME} <${from}>`,
-    to: Array.isArray(to) ? to : [to],
-    subject,
-    html,
+    From: `${FROM_NAME} <${from}>`,
+    To: (Array.isArray(to) ? to : [to]).join(", "),
+    Subject: subject,
+    HtmlBody: html,
+    MessageStream: "outbound",
   };
 
   try {
-    const resp = await fetch("https://api.resend.com/emails", {
+    const resp = await fetch("https://api.postmarkapp.com/email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+        "X-Postmark-Server-Token": apiKey,
       },
       body: JSON.stringify(payload),
     });
 
-    if (resp.status === 200) {
-      const data = await resp.json();
-      return { success: true, status: resp.status, id: data.id };
+    // Postmark returns 200 with ErrorCode 0 on success; non-zero ErrorCode
+    // (even at HTTP 200) and non-200 statuses are failures.
+    let data = null;
+    try { data = await resp.json(); } catch { /* non-JSON error body */ }
+
+    if (resp.status === 200 && data && data.ErrorCode === 0) {
+      return { success: true, status: resp.status, id: data.MessageID };
     }
 
-    const text = await resp.text();
-    return { success: false, status: resp.status, error: text };
+    const error = (data && (data.Message || JSON.stringify(data)))
+      || (await resp.text().catch(() => "")) || `Postmark error (status ${resp.status})`;
+    return { success: false, status: resp.status, error };
   } catch (err) {
     return { success: false, error: err.message || String(err) };
   }
@@ -446,7 +455,7 @@ export async function runStatsEmail(env, options = {}) {
   const stats = await collectEmailStats(env, { now });
 
   // Send email
-  const result = await sendStatsEmail(stats, { apiKey: env.RESEND_API_KEY });
+  const result = await sendStatsEmail(stats, { apiKey: env.POSTMARK_SERVER_TOKEN });
 
   return {
     sent: result.success,

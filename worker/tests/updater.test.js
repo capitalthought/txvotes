@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { runDailyUpdate, runCountyRefresh, getCountyRefreshSlice, COUNTY_REFRESH_BATCH_SIZE, COUNTY_REFRESH_TRACKER_KEY, validateBallot, validateRaceUpdate, extractSourcesFromResponse, mergeSources, ELECTION_DAY, raceKey, isLowerBallotRace, isUpdateMeaningful, STALE_THRESHOLD, STALE_RESEARCH_INTERVAL, STALE_TRACKER_KEY, ErrorCollector, detectLowQualitySources, ERROR_CATEGORIES, ERROR_LOG_PREFIX } from "../src/updater.js";
 
 // ---------------------------------------------------------------------------
@@ -1568,6 +1568,16 @@ describe("getCountyRefreshSlice", () => {
 // runCountyRefresh
 // ---------------------------------------------------------------------------
 describe("runCountyRefresh", () => {
+  // Freeze the clock to before Election Day so runCountyRefresh doesn't take its
+  // post-election short-circuit. Fake only Date (not setTimeout) — this block
+  // exercises the real function, which sleeps between counties.
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date("2026-02-20T12:00:00Z"), toFake: ["Date"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("skips after election day", async () => {
     vi.useFakeTimers({ now: new Date("2026-03-05T12:00:00Z") });
 
@@ -1807,6 +1817,15 @@ describe("runCountyRefresh", () => {
 // runDailyUpdate — county refresh integration
 // ---------------------------------------------------------------------------
 describe("runDailyUpdate — county refresh integration", () => {
+  // Freeze the clock to before Election Day so runDailyUpdate doesn't take its
+  // post-election short-circuit and still builds the county section.
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date("2026-02-20T12:00:00Z"), toFake: ["Date"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("return value always includes county section structure", async () => {
     const mockEnv = {
       ELECTION_DATA: {

@@ -31,6 +31,8 @@ function bufToHex(buffer) {
 }
 
 async function resolvePhase(url, env) {
+  // old.txvotes.app is a frozen pre-election demo — never block guide generation there.
+  if (url.hostname === "old.txvotes.app") return "pre-election";
   var stateCode = url.pathname.startsWith("/dc/") ? "dc" : "tx";
   var testPhase = url.searchParams.get("test_phase");
   var kvPhase = (testPhase && ELECTION_PHASES.includes(testPhase)) ? testPhase : await env.ELECTION_DATA.get("site_phase:" + stateCode);

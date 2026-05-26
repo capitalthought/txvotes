@@ -1,17 +1,8 @@
-# US Votes TODO List
+# US Votes TODO Archive
 
-## Display Rules
+> Completed `[x]` work moved out of `todo.md`, preserved verbatim under original section headers.
 
-When asked to show the todolist:
-1. **Verify each item is up to date** before displaying — check live site, code, or recent work to confirm status
-2. **Show only open items** (skip completed/checked items)
-3. **Group items logically** by category (Data, Features, DC Expansion, Security, Infrastructure, etc.)
-4. **Number each item** using the line number from this file (e.g., L42) so the user can say "do item L42"
-5. **Keep descriptions concise** — one line per item when displaying
-
----
-
-## Open
+## Completed (formerly inline in `## Open`)
 
 ### Data & Content
 
@@ -21,12 +12,6 @@ _From data audit (Feb 23). All 254 counties now have ballot keys. Some have empt
 - [x] Seed 23 missing counties — all FIPS 48445-48507 now have ballot data in KV
 - [x] Retry failed county ballots — Galveston (48167) and Jefferson (48245) both seeded successfully
 - [x] Seed missing party ballots — Kaufman (48257), Nueces (48303), McLennan (48309), Gregg (48183) all now have both party ballots
-- [ ] **LOW PRIORITY** Re-seed empty county ballots — Code fixes deployed via PR #7 (reject empty results, better prompts) and PR #8 (robust JSON extraction). Seeded results:
-  - Randall (48381): 1 Republican race (seeded in previous session)
-  - Smith (48423): 5 Republican + 2 Democrat races (seeded in previous session)
-  - Archer (48009): 3 Republican races found. No Democrat primary (expected — small rural red county).
-  - Austin County (48015): Still 0 races — may genuinely lack contested county-level primaries (population ~30K, very rural). Consider marking as "no contested county races."
-  - ~~**Verify:** Check `/admin/coverage` — Randall, Smith, Archer should show race counts > 0~~ **Verified 2/27** — all three show Y for County Info, GOP Ballot, and Dem Ballot on `/admin/coverage`.
 
 #### FIPS Mapping Bug (fixed in PR #7)
 - [x] **Fix Potter County missing from TX_COUNTY_NAMES** — Potter County (FIPS 48375) was missing, shifting 67 counties (48375-48507) by one position. Fixed FIPS mapping, corrected TOP_COUNTIES FIPS swaps (Nueces, Parker, Lubbock). Also added batch `seed-county-info` endpoint.
@@ -38,10 +23,6 @@ _From data audit. 65 statewide candidates, most fields 95%+ filled._
 - [x] Fill Michael Berlanga (R-Comptroller) data — added background, 6 key positions, 4 endorsements, polling (4% UH Hobby poll), fundraising (minimal), expanded pros to 5 and cons to 5. **WARNING: Live data still shows 0 pros / 2 cons as of Feb 23 — data was likely overwritten by daily updater before the min-pros validation was added. Needs re-patching via fix_balance_data.sh (see Balance of Pros/Cons P0 below).**
 - [x] Fill sparse candidate data — 35 field updates across both ballots. Polling now 0% missing (was 25%), fundraising 0% (was 12%), endorsements 37% (was 40%, 24 candidates genuinely have none)
 - [x] Add source citations to all candidates — Ballotpedia + TX SOS URLs added to all 65 statewide candidates
-
-#### Precinct Maps
-- [ ] Seed precinct maps for top counties — Code improvements deployed (PR #7: first-digit convention, GIS hints, validation). Re-seeding attempted for 28 counties but all return "Could not determine precinct map" — ZIP-to-commissioner-precinct data isn't available via web search. **Fundamental data sourcing problem, not a code problem.** Options: (1) hardcode static maps using official county GIS PDFs, (2) accept limitation and deprioritize.
-  - 10/30 top counties have maps from initial seed; remaining 20 need manual GIS research
 
 #### County Info
 - [x] Enrich county_info for all 254 counties — FIPS mapping fix (PR #7) corrected 67 counties' names. Batch seed-county-info endpoint added. All 254/254 counties now have county_info in KV (confirmed via seed run: 11 new, 0 errors). Verified on `/admin/coverage`.
@@ -55,13 +36,9 @@ _From data audit. 65 statewide candidates, most fields 95%+ filled._
 - [x] Add speed and cost comparison to the LLM experiment page — both Claude and challenger now always generate fresh API calls so timing/cost data is captured for both. Speed bars and cost estimates shown side-by-side. Expanded to 8 models (Claude Sonnet/Haiku/Opus, GPT-4o/4o-mini, Gemini Flash/Pro, Grok 3) with optgroup dropdown, per-model pricing, and provider color coding. LLM experiment page accessible from /admin hub. 33 new tests. Deployed.
 - [x] Show Share + Regenerate Summary buttons side by side on wide screens — Added `flex-direction:column` default with `@media(min-width:600px)` breakpoint for row layout. Profile page buttons also wrapped in `.actions` container. Deployed.
 - [x] Run LLM benchmark experiment to completion and publish findings — Infrastructure built: `llm-experiment.js` runner with 7 voter profiles × 8 models, consensus-based scoring (quality 50%, reasoning 15%, JSON 10%, balance 10%, speed 5%, cost 5%, robustness 5%), `/admin/llm-benchmark` dashboard with progress bar, start/reset buttons, results tables. Client-driven execution (one API call per worker request) with KV lock to prevent concurrent runs. 69 tests. Plan at `docs/plans/plan_llm_experiment.md`. **Next:** run the benchmark (1 run = 56 calls, ~$19, ~15-30 min), review results, decide on default model.
-- [ ] Design a candidate/community data submission system — allow candidates and others to submit data for races with limited info. Must be trusted, not spammable or gameable (needs verification/moderation design)
 - [x] Add filter by county to candidates list — dropdown with All Counties / Statewide Only / per-county options, race count indicator, statewide races always visible per county, Spanish translations
-- [ ] Make city/region support self-service — configuration-driven approach so any city/region can set up their own voting guide without code changes
-- [ ] Create versions for runoffs and general election — support multiple election cycles beyond the primary (detailed plan at docs/plans/plan_runoff_general_election.md, 4-phase timeline March-October)
 - [x] Add Related Links sections to transparency pages — add "Nonpartisan by Design" link to bottom of Data Quality page, and replicate the Data Quality page's Related Links section on AI Audit, Nonpartisan, and Open Source pages (cross-linking between all transparency pages)
 - [x] Create new txvotes repo in GitHub — fresh copy of the code without all the dev history
-- [ ] **Plan Colorado expansion** — Enter planning mode and figure out how to expand the platform to Colorado. Research CO election structure, counties, ballot format, data sources, and what needs to change in the codebase (multi-state routing, KV key namespacing, branding, etc.). Write the plan to `docs/plans/plan_colorado_expansion.md`.
 - [x] **Plan Washington DC primaries** — Plan written at `docs/plans/plan_dc_primaries.md`. Phase 1 (multi-state infrastructure) implemented: STATE_CONFIG, `/tx/app` and `/dc/app` routing, backward-compat redirects from `/app`, DC "Coming Soon" stub page. See DC Expansion section below for remaining phases.
 - [x] Show website traffic stats publicly — `/stats` page with usage metrics, data quality scores, AI fairness audit results, activity charts. Deployed.
 - [x] Design a public stats page — `/stats` shows guides generated, tone/language breakdowns, sharing stats, audit scores, candidate coverage. 15-min KV cache. Spanish translations. Deployed.
@@ -85,8 +62,6 @@ _Latest audit (Feb 23): ChatGPT 7.5, Gemini 7.5, Claude 8.2, Grok 7.8 (avg 7.8/1
 
 #### Factual Accuracy (7.0/10 — lowest dimension, all four auditors scored 7)
 
-- [ ] Add cross-referencing against Ballotpedia/Vote Smart — verify AI-generated candidate positions, endorsements, and backgrounds against established independent databases before publishing. *Flagged by: Claude. Improves: Accuracy.*
-- [ ] Create fallback to verified static datasets — when AI web search fails, returns contradictory results, or contradicts official filings, automatically fall back to pre-verified data from official sources (SOS filings, county clerk records). *Flagged by: Grok, synthesis. Improves: Accuracy.*
 - [x] Add AI limitations disclaimer on recommendation pages — persistent footer on ballot view: "Recommendations are AI-generated from web sources and may contain errors or outdated information. Always verify candidate positions through official sources before voting." Spanish translation included. *Flagged by: Grok. Improves: Accuracy, Transparency.*
 - [x] Enhance error logging for AI search failures — `ErrorCollector` class with 8 categories, `detectLowQualitySources()`, wired into daily updater at 8 capture points. `GET /admin/errors` dashboard with 7-day overview. KV persistence with 14-day retention. 33 new tests. *Flagged by: Grok, ChatGPT. Improves: Accuracy.*
 - [x] Add per-data-point confidence indicators — `classifyConfidence()` in index.js and `classifySourceConf()` in pwa.js classify fields as verified/sourced/ai-inferred based on source URLs. Color-coded badges on candidate profiles (static + PWA) next to Key Positions, Strengths, Concerns, Endorsements, Fundraising, Polling. Legend included. Spanish translations. 28 new tests. Deployed.
@@ -125,7 +100,6 @@ _Current balance score: 78/100 (Republican 70, Democrat 85). Up from 51/100 afte
 - [x] Restrict novelty tones on recommendation screens — prominent amber warning banner on ballot page when Cowboy active. "Switch to Standard" button regenerates guide in neutral tone. Dismissible but re-appears on each visit. Spanish translations. *Flagged by: Grok, ChatGPT (original audit). Improves: Framing.*
 - [x] Add post-generation partisan balance scoring — `scorePartisanBalance()` in pwa-guide.js with confidence distribution, incumbent/challenger bias, pro/con text analysis, 4 flag types. Runs after every guide generation. Comprehensive tests.
 
-
 ### Code Review Findings (PR #2)
 
 _From automated code review of "Add automated AI audit runner" (interview-flow-tests branch)._
@@ -147,13 +121,10 @@ _From automated code review of "Add automated AI audit runner" (interview-flow-t
 - [x] Error 1101 on /data-quality page — `updateLog.log` is an array but code called `.match()` expecting a string. Fixed array/string handling, added try/catch safety net.
 - [x] County filter on /candidates page not filtering — county ballot data in KV was missing `countyName` field. Fixed by extracting FIPS from KV key name and looking up county name. Travis County now appears.
 - [x] Ballot page footer showed "Nonpartisan by Design · Privacy Policy · v25" — changed to "Texas Votes · How It Works · Privacy"
-
 - [x] **Bug: Sharing a race shares AI recommendation instead of user's override pick** — Fixed `shareRace()` and `shareGuide()` in pwa.js to use `getEffectiveChoice()` instead of raw `race.recommendation.candidateName`. Cheat sheet was already correct.
 - [x] **Include `https://` in sharing links** — Shared URLs (race share, guide share) need the `https://` protocol prefix so that messaging apps (iMessage, WhatsApp, SMS, etc.) render a link preview/unfurl. Without the protocol, many apps treat the text as plain text with no preview.
 
 ### Daily Updater & Freshness
-- [ ] Add county ballots and voting info to daily updater refresh — currently only statewide races are auto-updated; county ballots, county_info, and precinct maps are seeded once and never refreshed
-- [ ] Design a post-Election Day site and have it ready to automatically switch when the polls close — currently the site shows stale "March 3, 2026" messaging with no post-election UX, no runoff messaging, no results. After election ends, app still shows "Vote Now" CTAs and generates guides for concluded races.
 - [x] Put more accurate text for unseeded county polling hours — replaced Travis County-specific fallback with generic statewide text ("Early voting hours vary by county")
 
 ### Security (Brad Feld external assessment, Feb 24)
@@ -163,14 +134,6 @@ _External black-box assessment of txvotes.app public surface. No source code acc
 - [x] **[S1] Rate-limit guide generation API (HIGH)** — Per-IP rate limiting added to /app/api/guide and /app/api/summary (10 req/IP/min). KV-based tracking with auto-expiring keys. Returns 429 with Retry-After. Fails open on KV errors. rate-limit.js module with 24 tests. Deployed.
 - [x] **[S2] Remove verbatim system prompts from /api/audit/export (HIGH)** — New `buildPublicAuditExportData()` serves redacted export: prompts replaced with methodology summaries, model versions genericized, tone injection text removed. Internal `buildAuditExportData()` unchanged for audit runner. 62 tests updated. Deployed.
 - [x] **[S7] Add security.txt disclosure policy (LOW-MEDIUM)** — `/.well-known/security.txt` returns RFC 9116 compliant response with security@txvotes.app contact, expiry, canonical URL, and policy link. 5 new tests. Deployed.
-
-#### Post-Election
-- [ ] **[S3] Harden daily updater against data poisoning (MEDIUM-HIGH)** — The updater uses Claude web_search to refresh candidate data. The audit export documents exact source hierarchy and validation thresholds. An attacker could create SEO-optimized fake pages to inject false endorsements, polling, or positions that persist in KV. Fix: cross-reference AI search results against a known-good source allowlist.
-- [ ] **[S4] Prevent KV key enumeration (MEDIUM)** — The audit export reveals KV key patterns (`ballot:statewide:{party}_primary_2026`, `county_info:{fips}`). If any endpoint accepts KV keys as parameters, an attacker could enumerate all stored data. Fix: audit all endpoints that read KV keys for user-supplied input, restrict to known patterns.
-- [ ] **[S5] Validate and sanitize event tracking endpoint (MEDIUM)** — `/app/api/ev` accepts arbitrary POST data with no auth or input validation. If event data renders in admin dashboards without sanitization, this is a stored XSS vector. Also allows analytics poisoning. Fix: validate event schema, sanitize before rendering.
-- [ ] **[S6] Audit Census geocoder proxy for SSRF/logging (MEDIUM)** — The Worker proxies addresses to the Census Bureau Geocoder. If the address parameter isn't validated server-side, minor SSRF risk exists. If any logging misconfiguration exists, addresses could be retained unintentionally. Fix: validate address input, verify no logging of PII.
-- [ ] **[S8] Mitigate client-side data tampering on shared computers (LOW)** — All user data in localStorage. On shared computers (libraries, kiosks), an attacker could pre-load manipulated ballot data so the next user sees biased recommendations. Fix: integrity check on stored data, or session-based storage.
-- [ ] **[S9] Add security headers (CSP, X-Frame-Options) (LOW)** — Missing or unverified Content-Security-Policy, X-Frame-Options, and other security headers. The app could be embedded in an iframe on a phishing site (clickjacking) or be vulnerable to inline script injection. Fix: add proper security headers in the Worker response.
 
 ### Staleness & Caching (from audit)
 _Audit found 12 stale data risks across KV, service worker, localStorage, and daily updater._
@@ -224,9 +187,6 @@ _From Claude API usage review (Feb 22). Recurring cost ~$26/month (updater $20 +
 - [x] Enable Anthropic prompt caching for guide generation — system prompt uses `cache_control: { type: "ephemeral" }`. No beta header needed (GA). Both guide and summary endpoints benefit.
 - [x] Batch tone regeneration after daily updates — `didCandidateTextChange()` detects modifications, `generateCandidateTone()` regenerates levels 1/4/7 with 2s delays. ~$0.036/candidate.
 
-#### Post-Election
-- [ ] Architecture review for general elections — more races, more candidates, higher traffic. May need response caching (cache guide responses by profile hash for 1 hour).
-
 ### Ballot Generation Speed
 _From speed optimization research (Feb 23). Current guide generation takes 10-30+ seconds._
 
@@ -242,7 +202,6 @@ _From speed optimization research (Feb 23). Current guide generation takes 10-30
 
 #### Prompt Size Reduction
 - [x] **Strip pros/cons/endorsements from uncontested races** — Uncontested races now only include candidate name + incumbent status. 20-30% token reduction for ballots with 5+ uncontested races.
-- [ ] **Truncate endorsement lists to top 3 per candidate** — Some candidates have 8+ endorsements in the ballot data, all serialized into the prompt. Cap at 3 most notable endorsements. _Estimated: 0.5-1s from token reduction on endorsement-heavy ballots._
 - [x] **Pre-filter ballot before building description** — `filterBallotToDistricts()` already runs before `buildCondensedBallotDescription()` in the correct sequence. District races are filtered out when districts are provided.
 
 #### KV Read Optimization
@@ -255,10 +214,6 @@ _From speed optimization research (Feb 23). Current guide generation takes 10-30
 
 #### max_tokens Tuning
 - [x] **~~Reduce max_tokens for English guides from 4096 to 2048~~** — Current values: 2048 English, 4096 Spanish cached, 8192 Spanish fresh. Auto-retry with doubled max_tokens on truncation now handles edge cases. stop_reason/finish_reason truncation detection added to all 3 LLM providers.
-
-#### Architecture Changes (Higher Effort)
-- [ ] **Pre-generate guide skeletons at ballot update time** — When the daily updater refreshes ballot data, pre-generate ballot descriptions and cache them. At guide time, the LLM call only needs the voter profile + pre-built ballot text, skipping all ballot-building logic. _Estimated: 50-100ms savings on worker CPU, main benefit is code simplicity._
-- [ ] **Split guide generation into parallel per-category LLM calls** — Instead of one big prompt with all races, split into 3-4 parallel calls: federal races, state executive, judicial, local. Each call has a smaller prompt and returns faster. Merge results on the worker. Risk: more API calls = more rate limit exposure, and profileSummary must be generated separately. _Estimated: wall-clock could drop 30-50% (from max-of-parallel vs sum-of-sequential), but adds complexity and error handling._
 
 ### Memory Management
 _From memory management review (Feb 22). 13 issues found across localStorage, service worker cache, KV retention, and state cleanup._
@@ -284,38 +239,14 @@ _Phase 1 (multi-state infrastructure) complete. Plan at `docs/plans/plan_dc_prim
 
 #### Phase 2: DC Address Resolution
 - [x] **Integrate DC MAR API for address-to-district mapping** — Implemented in dc-mar.js: `resolveDCAddress()` with KV caching (7-day TTL), Census geocoder fallback, `handleDCDistricts()` endpoint at `/dc/app/api/districts`. 51 tests in dc-mar.test.js.
-- [ ] **Register for MAR 2 API key** — Go to `https://developers.data.dc.gov/Identity/Account/Register`, create account, copy API key, then run `cd worker && npx wrangler secret put DC_MAR_API_KEY -c wrangler.txvotes.toml`. Key is free. Needed as backup when legacy MAR eventually shuts down.
 - [x] **Decide on DC MAR API key management** — Legacy MAR API (citizenatlas.dc.gov) needs no key. MAR 2 API (developers.data.dc.gov) requires free registration — register at `https://developers.data.dc.gov/Identity/Account/Register`, store key as Wrangler secret `DC_MAR_API_KEY`. Use legacy MAR for now, MAR 2 as backup (legacy was announced for shutdown June 2025 but still working as of Feb 2026). ArcGIS REST (maps2.dcgis.dc.gov) also available as no-auth fallback but requires 4 separate spatial queries.
 
 #### Phase 3: DC Ballot Data Pipeline
-- [ ] **Seed DC citywide ballot data** — Create `dc:ballot:citywide:{party}_primary_2026` KV entries for Mayor, AG, Council Chair, Council At-Large, US House Delegate, Shadow Senator, Shadow Representative.
-- [ ] **Seed DC ward-specific ballot data** — Create `dc:ballot:ward:{ward}:{party}_primary_2026` KV entries for Council Ward seats and State Board of Education (wards 1, 3, 5, 7 in 2026).
 - [x] **Decide whether to include ANC commissioner races** — Decision: skip for Phase 1. ~296 SMDs, most uncontested, too granular. Revisit in Phase 2 if there's demand.
 - [x] **Research DC candidate data sources** — No single source has everything; must aggregate. **Tier 1 (structured):** DCBOE candidate list PDFs (official, after March 18 filing deadline), OCF eFiling CSV/XML downloads (fundraising, active candidates), OpenFEC API (U.S. Delegate race, free key), OpenANC CSV (ANC commissioners), Open Data DC ArcGIS (ward/precinct boundaries). **Tier 2 (positions):** GGWash questionnaire responses, LWV-DC/VOTE411, RepresentDC tracker, Politics1.com (best free candidate list, HTML). **Tier 3 (AI-enrichable):** campaign websites, local media (DCist, WaPo, 51st.news). **Note:** Semi-open primaries not funded — primaries remain closed. RCV (rank up to 5) is happening. Ballotpedia API exists but likely requires paid access. Google Civic Info API may populate closer to election.
 
-#### Phase 4: Interview Flow & PWA
-- [ ] **Add state selector to interview flow** — First-visit screen to choose Texas or DC before starting the interview. Persist selection in localStorage. _Note: state selector + DC branding agent completed this work but worktree was lost. DC PWA routes partially recovered (index.js). PWA state-aware variables and 51 state-selector tests need to be re-implemented._
-- [ ] **Add DC-specific interview issues** — DC Statehood, Metro/WMATA, Government Accountability, Home Rule, Housing (DC-specific), Public Safety, Education (DCPS).
-- [ ] **Support 4-party selection for DC** — Democrat, Republican, Statehood Green, Libertarian + Independent option. DC is ~76% Democrat, ~16% Independent.
-- [ ] **Default address form to DC/Washington when state=dc** — Pre-fill state and city fields for DC users. _Note: partial work recovered from stash — DC PWA routes added to index.js, but pwa.js state-aware variables need re-implementation._
-
-#### Phase 5: Guide Generation for DC
-- [ ] **Design RCV recommendation schema** — DC uses ranked-choice voting (Initiative 83). Guide responses need ranked recommendations (rank up to 5) instead of single picks. New JSON schema for RCV races.
-- [ ] **Decide on RCV ranking depth** — Full 5 rankings or top 2-3? Deeper rankings need more research per candidate but provide more value.
-- [ ] **Build RCV-aware prompt templates** — Modify guide generation prompts to explain RCV strategy (e.g., "rank your top 3 in order of preference").
-- [ ] **Add RCV UI to ballot and cheat sheet** — Show ranked picks (#1, #2, #3) instead of single recommendation. Cheat sheet needs RCV-friendly layout.
-
 #### Phase 6: Routing, Branding & Polish
-- [ ] **Replace DC "Coming Soon" page with live PWA** — DC PWA routes added to index.js (partial recovery from stash). Still needs ballot data, guide generation, and pwa.js state-aware variables before it's fully functional.
-- [ ] **Create DC-specific OG images and branding** — DC flag colors, DC-specific social sharing images, meta tags.
 - [x] **Register dcvotes.app or usvotes.app** — Both registered. DC will launch as **dcvotes.app**. usvotes.app reserved for future national umbrella.
-- [ ] **Add DC to landing page** — State selector or automatic detection on the main txvotes.app landing page.
-- [ ] **Update README and CLAUDE.md for multi-state architecture** — Document new state-config.js, /tx/ and /dc/ routing, KV namespacing.
-
-#### Phase 7: Testing & Launch
-- [ ] **Full QA pass on DC flow** — End-to-end testing of DC interview, address resolution, guide generation, ballot display, cheat sheet, RCV UI.
-- [ ] **Soft launch DC** — Enable /dc/app with real data, invite DC voters for feedback before public announcement.
-- [ ] **Migrate TX KV keys to `tx:` prefix** — Currently TX keys are unprefixed for backward compat. Plan and execute migration to `tx:` prefix for consistency.
 
 ### Diagnostics & Data Quality
 - [x] **Fix all outstanding diagnostic issues** — Fixed 7 issues: proposition tone threshold, county name column, JSON parse guards, health check audit status, stale "repo pending" text, route comment, test mock. PR #6 merged.
@@ -328,9 +259,6 @@ _Phase 1 (multi-state infrastructure) complete. Plan at `docs/plans/plan_dc_prim
 
 - [x] **Email daily stats summaries to admin@usvotes.app** — stats-email.js module sends via MailChannels. Daily at 7am CT, hourly during 48h election window (March 1-3). Includes guide generations, cache hit rates, error rates, balance scores, API costs. Hourly cron added to wrangler.txvotes.toml. PR #13 merged. Deployed.
 - [x] **Add MailChannels SPF DNS record for txvotes.app** — TXT record `v=spf1 a mx include:relay.mailchannels.net ~all` added to Cloudflare DNS. Stats emails now functional.
-- [ ] Replace atxvotes-api worker with Cloudflare redirect rule — atxvotes.app only does 301 redirects to txvotes.app now (cron moved to usvotes-api). Replace the worker with a Cloudflare Bulk Redirect rule to eliminate the redundant worker entirely.
-- [ ] Rename txvotes-api worker to usvotes-api in Cloudflare dashboard — config already uses `usvotes-api` but deploying requires the old name since `txvotes-api` owns the routes. Unassign routes from `txvotes-api` in the dashboard, then deploy with `usvotes-api` name. Temporarily reverted in wrangler.txvotes.toml to keep deploys working.
-- [ ] **Set up tx.usvotes.app and dc.usvotes.app subdomains** — Configure Cloudflare DNS for usvotes.app with `tx` and `dc` subdomains pointing to the usvotes-api worker. Add route patterns in wrangler.txvotes.toml for `tx.usvotes.app/*` and `dc.usvotes.app/*`. Should work identically to txvotes.app and dcvotes.app respectively.
 - [x] **Fix happy-dom missing in worktrees** — Added "Worktree Testing" section to CLAUDE.md with `npm install` instructions. PR #5 merged.
 
 ### Collaboration Readiness
@@ -343,13 +271,9 @@ _Phase 1 (multi-state infrastructure) complete. Plan at `docs/plans/plan_dc_prim
 
 #### Secrets Audit (P1)
 - [x] Add `.env*` to `.gitignore` — added `.env*` pattern to root `.gitignore`. Prevents accidental secret commits.
-- [ ] Verify `CF_BEACON_TOKEN` in `wrangler.toml` is acceptable to have in plaintext — it's a low-risk analytics beacon token, but confirm it's not sensitive. All real secrets go through `wrangler secret put`.
 
 #### Contributor Onboarding Docs (P1)
 - [x] Add CONTRIBUTING.md or expand README with partner onboarding — how to get Cloudflare/Anthropic API keys for local dev, which wrangler config to use (`-c wrangler.txvotes.toml` footgun), PR workflow (feature branches → PR → review → merge), how to run tests locally.
-
-#### Deploy Process (P2)
-- [ ] Agree on deploy rules — who can deploy, deploy from main only, manual vs CI-triggered deploys. Currently anyone with `npx wrangler deploy` access can push to production. Consider adding a deploy step to GitHub Actions that triggers on merge to main.
 
 ---
 

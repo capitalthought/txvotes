@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -191,6 +191,16 @@ describe("POST /api/admin/set-phase", () => {
 // Guide API 410 guards (post-election)
 // ---------------------------------------------------------------------------
 describe("Guide API post-election guards", () => {
+  // Freeze the clock to before Election Day. The explicit post-election cases
+  // force the phase via KV override, but the "works normally pre-election (no
+  // override)" case depends on the wall clock being before March 3, 2026.
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date("2026-02-20T12:00:00Z"), toFake: ["Date"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   function guideBody() {
     return {
       party: "republican",
@@ -320,5 +330,50 @@ describe("Static pages with ?test_phase= query param", () => {
     // The "See a Sample Ballot" link should be replaced by "View Your Ballot" in the HTML
     // (translation dictionaries may still contain the string — that's fine)
     expect(html).toContain('href="/tx/app"');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// old.txvotes.app — frozen pre-election demo host
+// The wall clock is post-election, so this proves the host override (not the
+// date) drives the phase, across BOTH resolvers (index.js + pwa-guide.js).
+// ---------------------------------------------------------------------------
+describe("old.txvotes.app frozen pre-election demo host", () => {
+  async function getOld(path, env) {
+    const request = new Request(`https://old.txvotes.app${path}`, { method: "GET" });
+    return worker.fetch(request, env || createMockEnv());
+  }
+  async function postOld(path, body, env) {
+    const request = new Request(`https://old.txvotes.app${path}`, {
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+      headers: { "Content-Type": "application/json" },
+    });
+    return worker.fetch(request, env || createMockEnv());
+  }
+
+  it("control: /tx/app/api/phase on txvotes.app reports post-election (real date)", async () => {
+    const res = await get("/tx/app/api/phase");
+    expect((await res.json()).phase).toBe("post-election");
+  });
+
+  it("forces pre-election on the phase API (index.js resolver)", async () => {
+    const res = await getOld("/tx/app/api/phase");
+    expect((await res.json()).phase).toBe("pre-election");
+  });
+
+  it("landing page shows the pre-election 'Build My Voting Guide' CTA", async () => {
+    const res = await getOld("/");
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("Build My Voting Guide");
+  });
+
+  it("does NOT block guide-stream with 410 (pwa-guide.js resolver)", async () => {
+    const res = await postOld("/tx/app/api/guide-stream", {
+      party: "republican",
+      profile: { topIssues: ["Economy"] },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("text/event-stream");
   });
 });

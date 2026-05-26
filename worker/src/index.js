@@ -259,6 +259,9 @@ function checkAdminAuth(request, env) {
  * The test_phase param allows pre-election testing without KV writes.
  */
 async function resolveElectionPhase(url, env, stateCode = 'tx') {
+  // old.txvotes.app is a frozen demo of the pre-primary site (for showing people
+  // what it looked like before the election). Force pre-election on that host.
+  if (url.hostname === 'old.txvotes.app') return 'pre-election';
   const testPhase = url.searchParams.get('test_phase');
   if (testPhase && ELECTION_PHASES.includes(testPhase)) {
     return testPhase;
@@ -8722,7 +8725,7 @@ export default {
       const body = await request.json().catch(() => ({}));
       const stats = await collectEmailStats(env, { now: new Date() });
       stats.frequency = "test";
-      const result = await sendStatsEmail(stats, { apiKey: env.RESEND_API_KEY, toEmail: body.to });
+      const result = await sendStatsEmail(stats, { apiKey: env.POSTMARK_SERVER_TOKEN, toEmail: body.to });
       return new Response(JSON.stringify({ ...result, stats }, null, 2), {
         headers: { "Content-Type": "application/json" },
       });

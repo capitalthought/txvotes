@@ -6,6 +6,8 @@ compatibility_date = "2024-01-01"
 routes = [
   { pattern = "txvotes.app/*", zone_name = "txvotes.app" },
   { pattern = "www.txvotes.app/*", zone_name = "txvotes.app" },
+  # Frozen pre-election demo — the worker forces pre-election phase on this host
+  { pattern = "old.txvotes.app/*", zone_name = "txvotes.app" },
 ]
 
 # Static assets (headshot images served at /headshots/*)
