@@ -54,7 +54,7 @@ Git worktrees (`.claude/worktrees/`) do not include `node_modules`. Before runni
 cd worker && npm install && npx vitest run
 ```
 
-1629 tests across 19 test files:
+2219 tests across 28 test files:
 
 - **interview-flow.test.js** — Interview flow UI tests (happy-dom + vitest)
 - **index-helpers.test.js** — Helper functions, route patterns, candidate profiles, data quality
@@ -75,6 +75,15 @@ cd worker && npm install && npx vitest run
 - **stats.test.js** — Public stats page rendering, security, caching, i18n, graceful degradation
 - **rate-limit.test.js** — Rate limiting logic and edge cases
 - **llm-experiment.test.js** — LLM experiment profiles, runner, analysis, scoring, admin endpoints
+- **index-routes.test.js** — Route dispatch, multi-state routing, redirects
+- **ballot-override.test.js** — User pick overrides, effective choice, share payloads
+- **post-election.test.js** — Phase guards (410 post-election), time/KV/query phase resolution
+- **state-config.test.js** — STATE_CONFIG schema, per-state routing config
+- **state-selector.test.js** — State selector flow, persistence, DC/TX branching
+- **dc-mar.test.js** — DC MAR address resolution, KV caching, Census fallback
+- **spot-check.test.js** — Admin spot-check dashboard, confidence sorting, flag export
+- **stats-email.test.js** — Daily stats email composition and send (Postmark)
+- **usage-logger.test.js** — Per-component token/cost usage logging
 
 ## Key Patterns
 
