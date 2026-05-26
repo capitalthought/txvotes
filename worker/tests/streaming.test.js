@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   createIncrementalParser,
   handlePWA_GuideStream,
@@ -190,6 +190,15 @@ describe("sseEvent format", () => {
 // handlePWA_GuideStream — SSE streaming handler
 // ---------------------------------------------------------------------------
 describe("handlePWA_GuideStream", () => {
+  // Freeze the clock to before Election Day so the stream handler doesn't take
+  // its post-election 410 short-circuit. Fake only Date, not setTimeout.
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date("2026-02-20T12:00:00Z"), toFake: ["Date"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   function createMockEnv(overrides = {}) {
     const kvData = {};
     return {

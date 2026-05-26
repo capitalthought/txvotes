@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -62,6 +62,15 @@ async function get(path) {
 // Stats page — basic rendering
 // ---------------------------------------------------------------------------
 describe("Stats page: basic rendering", () => {
+  // Freeze the clock to before Election Day so the page renders its
+  // pre-election CTA (post-election swaps it for a results link).
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date("2026-02-20T12:00:00Z"), toFake: ["Date"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("GET /stats returns 200 with HTML", async () => {
     const res = await get("/stats");
     expect(res.status).toBe(200);

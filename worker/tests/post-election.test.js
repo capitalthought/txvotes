@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -191,6 +191,16 @@ describe("POST /api/admin/set-phase", () => {
 // Guide API 410 guards (post-election)
 // ---------------------------------------------------------------------------
 describe("Guide API post-election guards", () => {
+  // Freeze the clock to before Election Day. The explicit post-election cases
+  // force the phase via KV override, but the "works normally pre-election (no
+  // override)" case depends on the wall clock being before March 3, 2026.
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date("2026-02-20T12:00:00Z"), toFake: ["Date"] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   function guideBody() {
     return {
       party: "republican",
