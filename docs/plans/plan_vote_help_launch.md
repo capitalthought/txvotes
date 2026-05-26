@@ -25,10 +25,14 @@ perceived as partisan, is worse than useless. Our trust stack is three layers:
    eyes on the content. It directly answers our two biggest risks (accuracy at scale,
    partisanship perception) and is a credibility halo no competitor can easily match.
 
-**Two customers, per Agent First:** the human voter who needs their ballot explained, and the
-AI agent (ChatGPT/Claude/Perplexity) asked "what's on my ballot?" that needs a trustworthy
-tool to call. We ship a human PWA *and* an agent interface (MCP / typed API) so when someone
-asks an assistant about their ballot, the answer is *powered by vote.help*.
+**Two customers, per Agent First** ([agentsfirst.dev](https://agentsfirst.dev) — the framework
+Joshua Baer authored)**:** the human voter who needs their ballot explained, and the AI agent
+(ChatGPT/Claude/Perplexity) asked "what's on my ballot?" that needs a trustworthy tool to call.
+We ship a human PWA *and* an agent interface (MCP / typed API) so when someone asks an assistant
+about their ballot, the answer is *powered by vote.help*. Building vote.help to the published
+agentsfirst.dev playbook also makes it a flagship **reference implementation** of the framework —
+the civic-tech proof point for "design for the agent customer first," and a story that ties the
+launch back to Capital Factory's own thought leadership.
 
 ---
 
@@ -39,6 +43,21 @@ asks an assistant about their ballot, the answer is *powered by vote.help*.
   human layer of the trust stack (see §4).
 - ⬜ **Launch scope** — still open. National × every down-ballot race in 23 weeks isn't
   realistic at our accuracy bar *or* LWV's human-review throughput. Recommended tiered scope (§5).
+- 🟥 **LWV editorial authority: advisory vs. blocking** — **P0 week-1 blocker.** This is an
+  architectural decision, not an MOU footnote: *blocking* authority requires a hold/approve
+  state machine in the publishing pipeline (changes the data model + reviewer-console design);
+  *advisory* is a simpler integration. Decide before the P1 console is built. (See §4.)
+- ⬜ **Agent/MCP API in launch scope** — open. Agent First says interface-first; the plan
+  review flagged "no proven agent demand under a hard deadline." **Recommendation:** keep a
+  *minimal read-only* MCP (`get_ballot`, `get_guide`) in P1, defer richer agent tooling to
+  post-launch. Josh's framework call.
+
+> **Plan-review revisions (2026-05-26):** Items below incorporate two multipov plan reviews —
+> growth + ruthless-simplifier (job `ebda6a11`) and the full technical panel (job `408c64b2`:
+> staff/architecture, security, devops, test, auditor). The biggest structural change from the
+> technical round is the new **P0.5 Safety & Scale Foundations** phase, which resequences
+> security, observability, and load testing *before* real ballot data — the panel's strongest
+> consensus.
 
 ---
 
@@ -59,6 +78,7 @@ external dates (Texas; other states get their own config):
 | Phase | Window | Weeks out | Theme |
 |---|---|---|---|
 | **P0 Foundation** | May 26 – Jun 15 | T-23 → T-20 | Decisions, domain, repo, scope, cost model, LWV MOU |
+| **P0.5 Safety & Scale** | Jun 15 – Jul 28 | T-20 → T-14 | Security S3–S9, cache-stampede, allowlist, observability, load test — **gates P2** (runs alongside P1) |
 | **P1 Platform & Brand** | Jun 15 – Jul 14 | T-20 → T-16 | Multi-state engine, `vote` repo, rebrand, agent API, reviewer console |
 | **P2 Data & AI for General** | Jul 14 – Aug 11 | T-16 → T-12 | General ballots, accuracy safeguards, LWV review loop, scale |
 | **P3 Beta & Hardening** | Aug 11 – Sep 8 | T-12 → T-8 | Soft launch, load test, security, monitoring |
@@ -93,7 +113,46 @@ external dates (Texas; other states get their own config):
 - Build the broader partnership list (§6); open warm intros now — civic orgs move slowly.
 - "Coming soon" page with email capture.
 
-**Exit criteria:** domain owned, `vote` repo live, scope chosen, data + cost model approved, brand locked, **LWV scope agreed**.
+**Exit criteria:** domain owned, `vote` repo live, scope chosen, data + cost model approved,
+brand locked, **LWV scope agreed — including the advisory-vs-blocking editorial-authority
+decision (gates the P1 pipeline + console design; do not defer).**
+
+---
+
+### P0.5 — Safety & Scale Foundations (Jun 15 – Jul 28, runs alongside P1, **gates P2**)
+
+> **Plan-review finding (Security + DevOps + Auditor converged):** the original plan sequenced
+> security, observability, and load testing into P3 — *after* the reviewer console and real
+> ballot data go live. That's backwards for an election system; you'd discover failures during
+> the Oct 19–Nov 3 surge. These foundations move earlier and gate the P2 data seeding.
+
+- **Close the S3–S9 security backlog here, not P3** — each with a fail-closed branch *and* a
+  load test that attempts the documented attack: data-poisoning, KV-enumeration, event-endpoint
+  validation, Census geocoder SSRF + PII-logging, security headers (CSP/X-Frame).
+- **Cache-stampede protection (blocker):** add request coalescing + stale-while-revalidate to
+  the guide + ballot-description caches, and a circuit-breaker around the Census/GIS geocode
+  lookup. A cold hot-district key at 8am on Election Day must fire **one** upstream call, not
+  10k. Test: 100+ simultaneous misses on one key → exactly one LLM call.
+- **Source allowlist (blocker):** dedicated `allowlist:` KV namespace, **signed + versioned**
+  updates distributed to the updater worker; web_search ingestion **fails closed** when a
+  source isn't on the list. Designed in P0, enforced here — not discovered during P3.
+- **Rate limiting at national scale:** per-IP KV limits get bypassed behind CDNs/anycast (the
+  TX impl assumes direct client-IP visibility that won't exist nationally). Add device/auth
+  fingerprint limits + a much lower limit tier on any updater- or audit-touching endpoint.
+- **Daily-updater cron hardening:** stagger KV writes by state tier; add backpressure + a
+  circuit-breaker that pauses the cron when KV write latency/error rate exceeds threshold
+  (document the trigger, e.g. >200k daily ballots) — before it exhausts Worker CPU at peak.
+- **Observability contract:** structured logs with correlation IDs + required fields
+  (timestamp, service, operation, outcome, actor/context, error stack) on every guide gen / KV
+  write / cron run; centralized aggregation; define the Oct 19–Nov 3 incident metrics, alerts,
+  and **who watches them**.
+- **Constrained load test (moved up from P3):** simulate 10–50× TX traffic at 30% cache-miss on
+  new `ballot:general:*` keys **before** seeding general data in P2; acceptance criteria include
+  verifying the advisory/blocking review queue does not grow unbounded under that load.
+
+**Exit criteria (gates P2):** S3–S9 closed; cache-stampede coalescing + concurrency test green;
+allowlist enforced fail-closed; rate-limit + cron hardening shipped; observability contract live;
+constrained scale test passing.
 
 ---
 
@@ -102,14 +161,29 @@ external dates (Texas; other states get their own config):
 **Tech**
 - Land multi-state generalization (merge/rebase PRs #17–20): `STATE_CONFIG` routing, KV
   namespacing, national geocoding/district resolution (Census + state GIS).
+- **Geocoding validation strategy (plan-review finding):** district misalignment = wrong
+  ballots. Document cross-verification (Census vs. state GIS), per-state fixtures, and edge-case
+  tests for district assignment before relying on it nationally.
 - Migrate to `vote` repo; rebrand all copy/OG/logo/manifest "Texas Votes" → "Vote."
 - General-election ballot pipeline end-to-end for a reference state (TX).
 - **Reviewer console for LWV** — extend the existing `/admin/spot-check` dashboard (already
   confidence-sorted with approve/flag/export) into an LWV-facing review queue: lowest-confidence
   and flagged items first, accept/edit/flag, change tracking, per-reviewer attribution. This is
   what operationalizes the human layer.
-- **Agent First interface v1:** ship a `vote` MCP server / typed API — `get_ballot(address)`,
-  `explain_race(...)`, `get_guide(profile)` — with `AGENTS.md` usage rules.
+- **Agent First interface v1 (descoped):** ship a *minimal read-only* `vote` MCP / typed API —
+  `get_ballot(address)`, `get_guide(profile)` — following the [agentsfirst.dev](https://agentsfirst.dev)
+  principles (Interface First, Contract First via `AGENTS.md`, Inspectable State via a `status`
+  tool, structured/typed errors). Richer agent tooling (`explain_race`, writes) deferred to
+  post-launch pending the §2 decision.
+- **Analytics instrumentation (was missing — plan-review finding):** define the event taxonomy
+  (`address_entered → guide_generated → guide_completed → section_expanded → share_clicked →
+  return_visit`) and pick the stack (PostHog / Amplitude / custom on Analytics Engine). Wire
+  events as the funnel is built — not bolted on at the end. This is *behavioral* analytics,
+  distinct from P3 reliability monitoring.
+- **Activation / first-value design (plan-review finding):** design the empty-state and the
+  address-entry → first-guide moment explicitly. A voter in a Tier 2/3 (AI-only) state must
+  see *what they'll get* **before** entering an address, and coverage/confidence labels must
+  read as a trust signal, not a disclaimer. This is the highest-leverage conversion surface.
 
 **Marketing**
 - Brand site live (real identity + waitlist; guide still "coming soon").
@@ -125,6 +199,8 @@ external dates (Texas; other states get their own config):
 ### P2 — Data & AI for the General (Jul 14 – Aug 11)
 
 **Tech**
+- **Gated by P0.5 safety sign-off** — do not route real ballot data into the system until the
+  security backlog, cache-stampede protection, allowlist, and constrained load test are green.
 - **Seed general-election ballots for launch-tier states.** General ballot is effectively set
   post-primary/runoff (TX runoff ~now), so candidates are known — seed in earnest.
 - Scale the candidate-research pipeline (Claude + web_search) across states/districts.
@@ -154,11 +230,13 @@ external dates (Texas; other states get their own config):
 
 **Tech**
 - **Soft launch** to closed beta (CF network, LWV chapters, partner orgs, friendly press).
-- **Load test at projected November scale**; tune caching, rate limits, fallback models, CDN.
-- **Security hardening** — clear the S3–S9 backlog before public traffic: updater
-  data-poisoning defense, KV-enumeration lockdown, event-endpoint validation, geocoder SSRF
-  review, security headers (CSP/X-Frame). Election targets attract adversaries.
-- Monitoring/alerting + incident runbook; cost guardrails (auto-throttle, spend alarms).
+- **Full-scale load test** confirming the P0.5 constrained test holds at real November scale;
+  final tuning of caching, rate limits, fallback models, CDN.
+- **Security + observability already landed in P0.5** — P3 is verification under beta traffic
+  (re-run attack load tests, confirm alerts fire, exercise the incident runbook), not first build.
+- Cost guardrails validated under load (auto-throttle, spend alarms); incident runbook dry-run.
+- **Behavioral funnel dashboards** (per-state, per-tier) from the P1 event taxonomy — so the
+  8-week live window is optimized on data, and so LWV throughput decisions are data-driven.
 
 **Marketing**
 - Beta feedback → testimonials (LWV reviewers + voters); refine messaging from real usage.
@@ -226,10 +304,24 @@ This is new and load-bearing, so it gets its own section.
   content flows through; uncertain content waits for human sign-off.
 - **Scope coupling:** LWV throughput is a gating input to §5 — deep human review on Tier 1
   states, AI+automated-audit (clearly labeled) on Tier 2/3.
+- **Editorial authority decided FIRST (P0 blocker, §2):** advisory vs. blocking changes the
+  architecture. *Blocking* → the pipeline needs an explicit hold/approve state (content can't
+  publish until signed off) and the console is the gate. *Advisory* → content publishes with
+  AI+automated audit and LWV edits flow as corrections. Pick before building the P1 console.
+- **Review SLA + in-review fallback (plan-review finding):** define turnaround targets and,
+  critically, **what the user sees while an item is pending review** — a graceful "reviewed
+  content shown; this item is AI-generated and under review" state, not a blank or a hard block.
+- **Immutable audit log (plan-review finding):** every publishing state-machine transition
+  writes to an append-only log admins can't delete — schema `{action, actorId, targetBallotId,
+  previousState, newState, timestamp, reason}` — for both advisory and blocking modes. The
+  reviewer console's attribution/change-tracking is not a substitute for this.
+- **Reviewer access controls (plan-review finding):** if LWV is in *blocking* mode, their
+  approvals gate publishing — so harden it: strong session management, least-privilege
+  per-reviewer roles, and audit logging of every approve/edit/flag action.
 - **Marketing value:** "reviewed with the League of Women Voters" is the trust headline and a
   distribution channel (national org + local chapters). Co-branding terms set in P0.
-- **Open questions for the LWV MOU (P0):** national vs chapter-level reviewers; turnaround SLA;
-  which tiers/races they cover; editorial authority (advisory vs blocking); attribution/co-brand.
+- **Remaining MOU questions (P0):** national vs chapter-level reviewers; which tiers/races they
+  cover; attribution/co-brand. (Editorial authority + SLA are resolved above, not here.)
 
 ---
 
@@ -248,6 +340,12 @@ Three coverage tiers, shipped in priority order; launch with Tier 1+2, Tier 3 be
 gives a genuine national headline, and bounds the data effort. Be explicit in-product about
 coverage depth + review status per state.
 
+**Tier-3 carries real Election-Day risk (plan-review finding):** a wrong local result (e.g. a
+judicial race) going viral on Nov 3 is a trust event. Either (a) define an Election-Day incident
+path for Tier-3 — fast takedown/correction + a prominent "AI-generated, unverified" treatment —
+or (b) **cut Tier 3 from launch** and ship Tier 1+2 only with honest coverage labels. Decide in
+P0; don't carry unmonitored AI-only local data into a peak-traffic day without a plan.
+
 ---
 
 ## 6. Marketing channels (ranked)
@@ -255,7 +353,9 @@ coverage depth + review status per state.
 1. **Nonpartisan partnerships — LWV first** — credibility + national/chapter distribution. The
    anchor of the whole go-to-market. Then Vote.org, When We All Vote, VOTE411, campus + library nets.
 2. **SEO / organic** — highest-leverage, slowest to mature → start P1. Own "[state] voting guide 2026."
-3. **Agent ecosystem** — be the ballot tool assistants call (Agent First). Novel, compounding.
+3. **Agent ecosystem** — be the ballot tool assistants call, built to the
+   [agentsfirst.dev](https://agentsfirst.dev) framework. Novel, compounding, and doubles as a
+   thought-leadership angle: a published-framework reference implementation, not just a product.
 4. **PR / earned media** — LWV partnership + founder story + civic-tech angle; CF network.
 5. **Creators / influencers** — nonpartisan civic creators on TikTok/IG/X for GOTV reach.
 6. **Email / SMS** — opt-in election reminders (registration → early vote → election day).
@@ -276,6 +376,9 @@ coverage depth + review status per state.
 | **Adversarial attacks** (poisoning, misinfo, scraping) | Clear S3–S9 before launch; source allowlists; monitoring |
 | **Political-ad restrictions** | Lean organic + partnerships; start ad-platform verification early if used |
 | **Data deadline slip** in a state | General ballots set post-primary/runoff (now); per-state config isolates slippage |
+| **Tier-3 wrong local result goes viral on Election Day** | Election-Day incident path (fast correction + "unverified" treatment), or cut Tier 3 (§5) |
+| **Flying blind in the live window** (no behavioral data) | Event taxonomy wired in P1; per-state/tier funnel dashboards in P3 |
+| **Activation drop from un-designed empty-state** | Design first-value moment + pre-address coverage messaging in P1; labels as trust signals |
 
 ---
 
@@ -285,6 +388,8 @@ coverage depth + review status per state.
 - **Quality:** AI bias-audit score (hold ≥ ~7.8/10, target 8.5+); **LWV review pass/edit rate**;
   accuracy spot-check pass rate; correction turnaround.
 - **Engagement:** guide-completion rate; "I Voted" shares; returning visitors through GOTV.
+- **Re-engagement (plan-review finding):** day-2 / day-7 return rate; abandoned-guide recovery
+  rate; reminder open rate — instrumented from the P1 event taxonomy, not just counted at the end.
 - **Distribution:** partner referrals (LWV chapters); agent-sourced sessions; organic rank.
 - **Reliability:** uptime through the surge; p95 guide latency; cost per guide.
 
