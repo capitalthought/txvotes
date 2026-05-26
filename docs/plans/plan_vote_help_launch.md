@@ -39,6 +39,18 @@ asks an assistant about their ballot, the answer is *powered by vote.help*.
   human layer of the trust stack (see §4).
 - ⬜ **Launch scope** — still open. National × every down-ballot race in 23 weeks isn't
   realistic at our accuracy bar *or* LWV's human-review throughput. Recommended tiered scope (§5).
+- 🟥 **LWV editorial authority: advisory vs. blocking** — **P0 week-1 blocker.** This is an
+  architectural decision, not an MOU footnote: *blocking* authority requires a hold/approve
+  state machine in the publishing pipeline (changes the data model + reviewer-console design);
+  *advisory* is a simpler integration. Decide before the P1 console is built. (See §4.)
+- ⬜ **Agent/MCP API in launch scope** — open. Agent First says interface-first; the plan
+  review flagged "no proven agent demand under a hard deadline." **Recommendation:** keep a
+  *minimal read-only* MCP (`get_ballot`, `get_guide`) in P1, defer richer agent tooling to
+  post-launch. Josh's framework call.
+
+> **Plan-review revisions (2026-05-26):** Items below incorporate the multipov plan review
+> (job `ebda6a11`). The architecture/security panel failed to land (isolate death) and is
+> being re-run; this revision reflects the growth + ruthless-simplifier lenses only.
 
 ---
 
@@ -93,7 +105,9 @@ external dates (Texas; other states get their own config):
 - Build the broader partnership list (§6); open warm intros now — civic orgs move slowly.
 - "Coming soon" page with email capture.
 
-**Exit criteria:** domain owned, `vote` repo live, scope chosen, data + cost model approved, brand locked, **LWV scope agreed**.
+**Exit criteria:** domain owned, `vote` repo live, scope chosen, data + cost model approved,
+brand locked, **LWV scope agreed — including the advisory-vs-blocking editorial-authority
+decision (gates the P1 pipeline + console design; do not defer).**
 
 ---
 
@@ -108,8 +122,18 @@ external dates (Texas; other states get their own config):
   confidence-sorted with approve/flag/export) into an LWV-facing review queue: lowest-confidence
   and flagged items first, accept/edit/flag, change tracking, per-reviewer attribution. This is
   what operationalizes the human layer.
-- **Agent First interface v1:** ship a `vote` MCP server / typed API — `get_ballot(address)`,
-  `explain_race(...)`, `get_guide(profile)` — with `AGENTS.md` usage rules.
+- **Agent First interface v1 (descoped):** ship a *minimal read-only* `vote` MCP / typed API —
+  `get_ballot(address)`, `get_guide(profile)` — with `AGENTS.md` usage rules. Richer agent
+  tooling (`explain_race`, writes) deferred to post-launch pending the §2 decision.
+- **Analytics instrumentation (was missing — plan-review finding):** define the event taxonomy
+  (`address_entered → guide_generated → guide_completed → section_expanded → share_clicked →
+  return_visit`) and pick the stack (PostHog / Amplitude / custom on Analytics Engine). Wire
+  events as the funnel is built — not bolted on at the end. This is *behavioral* analytics,
+  distinct from P3 reliability monitoring.
+- **Activation / first-value design (plan-review finding):** design the empty-state and the
+  address-entry → first-guide moment explicitly. A voter in a Tier 2/3 (AI-only) state must
+  see *what they'll get* **before** entering an address, and coverage/confidence labels must
+  read as a trust signal, not a disclaimer. This is the highest-leverage conversion surface.
 
 **Marketing**
 - Brand site live (real identity + waitlist; guide still "coming soon").
@@ -159,6 +183,8 @@ external dates (Texas; other states get their own config):
   data-poisoning defense, KV-enumeration lockdown, event-endpoint validation, geocoder SSRF
   review, security headers (CSP/X-Frame). Election targets attract adversaries.
 - Monitoring/alerting + incident runbook; cost guardrails (auto-throttle, spend alarms).
+- **Behavioral funnel dashboards** (per-state, per-tier) from the P1 event taxonomy — so the
+  8-week live window is optimized on data, and so LWV throughput decisions are data-driven.
 
 **Marketing**
 - Beta feedback → testimonials (LWV reviewers + voters); refine messaging from real usage.
@@ -226,10 +252,17 @@ This is new and load-bearing, so it gets its own section.
   content flows through; uncertain content waits for human sign-off.
 - **Scope coupling:** LWV throughput is a gating input to §5 — deep human review on Tier 1
   states, AI+automated-audit (clearly labeled) on Tier 2/3.
+- **Editorial authority decided FIRST (P0 blocker, §2):** advisory vs. blocking changes the
+  architecture. *Blocking* → the pipeline needs an explicit hold/approve state (content can't
+  publish until signed off) and the console is the gate. *Advisory* → content publishes with
+  AI+automated audit and LWV edits flow as corrections. Pick before building the P1 console.
+- **Review SLA + in-review fallback (plan-review finding):** define turnaround targets and,
+  critically, **what the user sees while an item is pending review** — a graceful "reviewed
+  content shown; this item is AI-generated and under review" state, not a blank or a hard block.
 - **Marketing value:** "reviewed with the League of Women Voters" is the trust headline and a
   distribution channel (national org + local chapters). Co-branding terms set in P0.
-- **Open questions for the LWV MOU (P0):** national vs chapter-level reviewers; turnaround SLA;
-  which tiers/races they cover; editorial authority (advisory vs blocking); attribution/co-brand.
+- **Remaining MOU questions (P0):** national vs chapter-level reviewers; which tiers/races they
+  cover; attribution/co-brand. (Editorial authority + SLA are resolved above, not here.)
 
 ---
 
@@ -247,6 +280,12 @@ Three coverage tiers, shipped in priority order; launch with Tier 1+2, Tier 3 be
 **Why:** protects the accuracy bar (trust), matches LWV review capacity to where it counts,
 gives a genuine national headline, and bounds the data effort. Be explicit in-product about
 coverage depth + review status per state.
+
+**Tier-3 carries real Election-Day risk (plan-review finding):** a wrong local result (e.g. a
+judicial race) going viral on Nov 3 is a trust event. Either (a) define an Election-Day incident
+path for Tier-3 — fast takedown/correction + a prominent "AI-generated, unverified" treatment —
+or (b) **cut Tier 3 from launch** and ship Tier 1+2 only with honest coverage labels. Decide in
+P0; don't carry unmonitored AI-only local data into a peak-traffic day without a plan.
 
 ---
 
@@ -276,6 +315,9 @@ coverage depth + review status per state.
 | **Adversarial attacks** (poisoning, misinfo, scraping) | Clear S3–S9 before launch; source allowlists; monitoring |
 | **Political-ad restrictions** | Lean organic + partnerships; start ad-platform verification early if used |
 | **Data deadline slip** in a state | General ballots set post-primary/runoff (now); per-state config isolates slippage |
+| **Tier-3 wrong local result goes viral on Election Day** | Election-Day incident path (fast correction + "unverified" treatment), or cut Tier 3 (§5) |
+| **Flying blind in the live window** (no behavioral data) | Event taxonomy wired in P1; per-state/tier funnel dashboards in P3 |
+| **Activation drop from un-designed empty-state** | Design first-value moment + pre-address coverage messaging in P1; labels as trust signals |
 
 ---
 
@@ -285,6 +327,8 @@ coverage depth + review status per state.
 - **Quality:** AI bias-audit score (hold ≥ ~7.8/10, target 8.5+); **LWV review pass/edit rate**;
   accuracy spot-check pass rate; correction turnaround.
 - **Engagement:** guide-completion rate; "I Voted" shares; returning visitors through GOTV.
+- **Re-engagement (plan-review finding):** day-2 / day-7 return rate; abandoned-guide recovery
+  rate; reminder open rate — instrumented from the P1 event taxonomy, not just counted at the end.
 - **Distribution:** partner referrals (LWV chapters); agent-sourced sessions; organic rank.
 - **Reliability:** uptime through the surge; p95 guide latency; cost per guide.
 
