@@ -28,7 +28,11 @@ Both workers share the same `ELECTION_DATA` KV namespace. Daily cron runs on `us
 cd worker
 npx wrangler secret put ANTHROPIC_API_KEY -c wrangler.txvotes.toml
 npx wrangler secret put ADMIN_SECRET -c wrangler.txvotes.toml
+npx wrangler secret put POSTMARK_SERVER_TOKEN -c wrangler.txvotes.toml  # stats emails
 ```
+
+Stats summary emails are sent via the Postmark REST API (`stats-email.js`). The
+`usvotes.app` sender domain must have a verified Postmark sender signature/DKIM.
 
 ## Architecture
 
