@@ -15,7 +15,7 @@ import { ELECTION_SUFFIX } from "./state-config.js";
 const ELECTION_DATE = "2026-03-03";
 
 // Email config
-const FROM_EMAIL = "stats@usvotes.app";
+const FROM_EMAIL = "stats@vote.help";  // Postmark-verified sender domain (DKIM) on the "Vote" server
 const FROM_NAME = "Texas Votes Stats";
 const TO_EMAILS = ["admin@usvotes.app", "josh@baer5.com"];
 

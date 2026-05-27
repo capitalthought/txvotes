@@ -444,7 +444,7 @@ describe("sendStatsEmail", () => {
     expect(options.headers["X-Postmark-Server-Token"]).toBe("re_test_123");
 
     const body = JSON.parse(options.body);
-    expect(body.From).toContain("stats@usvotes.app");
+    expect(body.From).toContain("stats@vote.help");
     expect(body.To).toContain("admin@usvotes.app");
     expect(body.To).toContain("josh@baer5.com");
     expect(body.Subject).toContain("Daily Stats");
