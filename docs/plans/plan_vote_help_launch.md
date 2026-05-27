@@ -41,8 +41,12 @@ launch back to Capital Factory's own thought leadership.
 - ✅ **Domain: `vote.help`** (decided 2026-05-26). Acquire/confirm + matching social handles in P0.
 - ✅ **Human review partner: League of Women Voters** (offered 2026-05-26) — integrate as the
   human layer of the trust stack (see §4).
-- ⬜ **Launch scope** — still open. National × every down-ballot race in 23 weeks isn't
-  realistic at our accuracy bar *or* LWV's human-review throughput. Recommended tiered scope (§5).
+- ✅ **Launch scope: Tier-1 = Texas, Colorado, Washington DC** (decided 2026-05-26). Deep +
+  LWV-reviewed in these three; Tier-2 national federal/statewide and Tier-3 best-effort local
+  layer on top (§5). National × every down-ballot race in 23 weeks isn't realistic at our
+  accuracy bar *or* LWV's throughput, so the three deep states anchor the launch.
+- ✅ **`vote` repo created** (2026-05-26) — `capitalthought/vote`, seeded from txvotes with full
+  history (the successor). `vote.help` confirmed as a live Cloudflare zone.
 - 🟥 **LWV editorial authority: advisory vs. blocking** — **P0 week-1 blocker.** This is an
   architectural decision, not an MOU footnote: *blocking* authority requires a hold/approve
   state machine in the publishing pipeline (changes the data model + reviewer-console design);
@@ -329,9 +333,10 @@ This is new and load-bearing, so it gets its own section.
 
 Three coverage tiers, shipped in priority order; launch with Tier 1+2, Tier 3 best-effort.
 
-- **Tier 1 — Deep + human-reviewed (≈3–5 states):** Texas (done-ish) + a couple high-interest
-  states. Full ballot (statewide, congressional, legislative, judicial, props, major local),
-  with LWV human review.
+- **Tier 1 — Deep + human-reviewed: Texas, Colorado, Washington DC** (decided 2026-05-26).
+  Texas is done-ish; CO/DC have prior work to harvest (CO data from PRs #18/#19, DC from the
+  `plan_dc_primaries.md` + `dc-mar.js` address resolution already in the codebase). Full ballot
+  (statewide, congressional, legislative, judicial, props, major local), with LWV human review.
 - **Tier 2 — National federal + statewide:** every state's US Senate, US House, Governor, and
   statewide constitutional offices. AI + automated audit; LWV spot-checks the flagged tail.
 - **Tier 3 — Best-effort local:** AI-seeded local races behind clear confidence labels.
