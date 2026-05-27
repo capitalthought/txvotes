@@ -460,3 +460,6 @@ _Phase 1 (multi-state infrastructure) complete. Plan at `docs/plans/plan_dc_prim
 - [x] Partisan bias audit
 
 </details>
+
+### Credentials & Security
+- [x] **Terminate the Resend account** ✅ (resolved 2026-05-26 via /todo) — Replaced by Postmark (server "Vote", vote.help DKIM-verified, deployed). Resend account cancelled by Josh; `RESEND_API_KEY` worker secret deleted; orphaned 1P item "Resend API TXVotes" deleted. Verified live: Postmark test send from stats@vote.help returned ErrorCode 0.
