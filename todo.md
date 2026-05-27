@@ -107,7 +107,6 @@ _Phase 1 (multi-state infrastructure) complete. Plan at `docs/plans/plan_dc_prim
 
 ### Credentials & Security
 - [ ] Verify `CF_BEACON_TOKEN` in `wrangler.toml` is acceptable to have in plaintext — it's a low-risk analytics beacon token, but confirm it's not sensitive. All real secrets go through `wrangler secret put`.
-- [ ] **Terminate the Resend account** (added 2026-05-26 via /todo) — **NOW UNBLOCKED:** Postmark is live (server "Vote", `vote.help` DKIM-verified, `POSTMARK_SERVER_TOKEN` set on the worker, FROM=`stats@vote.help`, deployed). Cancel/delete the Resend account and remove any `RESEND_API_KEY` secret still set on the worker (`npx wrangler secret list -c wrangler.txvotes.toml`). _(vote.help return-path CNAME was still propagating at setup time — confirm `ReturnPathDomainVerified` flips true in Postmark; DKIM verified is sufficient to send.)_
 
 ### Deploy Process
 - [ ] Agree on deploy rules — who can deploy, deploy from main only, manual vs CI-triggered deploys. Currently anyone with `npx wrangler deploy` access can push to production. Consider adding a deploy step to GitHub Actions that triggers on merge to main.
